@@ -1,0 +1,43 @@
+name: Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Token somente leitura por padrão (menor privilégio)
+permissions:
+  contents: read
+
+# Cancela execuções antigas do mesmo PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  seguranca-e-testes:
+    name: seguranca-e-testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Troque as tags por SHA completo do commit (veja a nota abaixo)
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Procurar segredos vazados no código
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Revisar dependências vulneráveis
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+
+      # Substitua pela sua linguagem (testes, lint, build)
+      - name: Testes
+        run: |
+          echo "Coloque aqui o comando de testes do seu projeto"
